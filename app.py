@@ -7,6 +7,7 @@ import requests
 import base64
 import smtplib
 import json
+import re
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
@@ -70,19 +71,28 @@ elif menu == "Lead Generation":
                 details = requests.get(details_url).json()
                 result = details.get("result", {})
                 phone = result.get("formatted_phone_number", "")
-                website = result.get("website", "")
+                email = ""
+
+                website = result.get("website")
+                if website:
+                    try:
+                        html = requests.get(website, timeout=5).text
+                        found_emails = list(set(re.findall(r"[\w\.-]+@[\w\.-]+", html)))
+                        email = found_emails[0] if found_emails else ""
+                    except:
+                        email = ""
 
                 lead_entry = {
                     "Name": name,
                     "Address": address,
                     "Phone": phone,
-                    "Email": website
+                    "Email": email
                 }
                 results.append(lead_entry)
 
             st.write("### Extracted Leads")
             for lead in results:
-                st.markdown(f"- **{lead['Name']}** | {lead['Address']} | 📞 {lead['Phone']} | 📧 {lead['Email']}")
+                st.markdown(f"- **{lead['Name']}** | {lead['Address']} | 📞 {lead['Phone']} | 📧 {lead['Email']}\n")
 
             df = pd.DataFrame(results)
             st.download_button("Download CSV", df.to_csv(index=False), "leads.csv")
