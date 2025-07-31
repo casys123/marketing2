@@ -31,9 +31,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("**John Doe**")
 st.sidebar.markdown("Premium Plan")
 
-# ... previous menus ...
-
-elif menu == "Analytics":
+if menu == "Analytics":
     st.title("Analytics")
     st.subheader("Track your email marketing performance and insights")
 
