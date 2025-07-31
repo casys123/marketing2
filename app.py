@@ -84,17 +84,19 @@ elif menu == "Lead Generation":
 
                 lead_entry = {
                     "Name": name,
-                    "Address": address,
+                    "Email": email,
+                    "Company": name,
                     "Phone": phone,
-                    "Email": email
+                    "Business Type": search_type,
+                    "Location": location,
+                    "Status": "pending",
+                    "Source": "google_search"
                 }
                 results.append(lead_entry)
 
             st.write("### Extracted Leads")
-            for lead in results:
-                st.markdown(f"- **{lead['Name']}** | {lead['Address']} | 📞 {lead['Phone']} | 📧 {lead['Email']}\n")
-
             df = pd.DataFrame(results)
+            st.dataframe(df)
             st.download_button("Download CSV", df.to_csv(index=False), "leads.csv")
 
 elif menu == "Email Templates":
@@ -116,26 +118,24 @@ elif menu == "Email Templates":
 
 elif menu == "Contacts":
     st.title("Contacts")
+    st.subheader("Manage your email marketing contacts")
     if "leads" not in st.session_state:
         st.session_state.leads = []
 
-    st.header("Add Contact Manually")
-    with st.form("add_contact"):
-        name = st.text_input("Name")
-        email = st.text_input("Email")
-        phone = st.text_input("Phone")
-        address = st.text_input("Address")
-        if st.form_submit_button("Add"):
-            if validate_email(email):
-                st.session_state.leads.append({"Name": name, "Email": email, "Phone": phone, "Address": address})
-                st.success("Contact added.")
-            else:
-                st.error("Invalid email")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.download_button("Export CSV", pd.DataFrame(st.session_state.leads).to_csv(index=False), "contacts.csv")
+    with col2:
+        st.file_uploader("Import CSV", type=["csv"])
+    with col3:
+        st.button("Add Contact")
+
+    st.text_input("Search contacts...")
+    st.selectbox("Filter", ["All Contacts (29)"])
 
     if st.session_state.leads:
         df = pd.DataFrame(st.session_state.leads)
-        st.dataframe(df)
-        st.download_button("Download Contacts", df.to_csv(index=False), "contacts.csv")
+        st.dataframe(df, use_container_width=True)
 
 elif menu == "Campaigns":
     st.title("Campaigns")
