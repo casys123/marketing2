@@ -54,6 +54,10 @@ location = st.text_input("City or Zip Code", value="Miami, FL")
 if st.button("Search Google Places") and gmaps_api_key:
     text_search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={search_type}+in+{location}&key={gmaps_api_key}"
     response = requests.get(text_search_url).json()
+
+    st.markdown(f"**API Status:** {response.get('status')}")
+    if "error_message" in response:
+        st.markdown(f"**Error:** {response['error_message']}")
     st.json(response)  # Debug output
 
     if "error_message" in response:
