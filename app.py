@@ -20,129 +20,123 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 gmaps_api_key = os.getenv("GOOGLE_MAPS_API_KEY")
 
-st.set_page_config(page_title="Marketing2 App", layout="wide")
-st.title("Miami Master Flooring - Marketing System")
+st.set_page_config(page_title="EmailMarketer Pro", layout="wide")
 
-# --- Session State Setup ---
-if "leads" not in st.session_state:
-    st.session_state.leads = []
-if "sent_logs" not in st.session_state:
-    st.session_state.sent_logs = []
-if "search_results" not in st.session_state:
-    st.session_state.search_results = []
+# Sidebar Navigation
+menu = st.sidebar.radio("", [
+    "Dashboard", "Contacts", "Lead Generation", "Email Templates", "Campaigns", "Analytics", "API Config", "Settings"
+])
+st.sidebar.markdown("---")
+st.sidebar.markdown("**John Doe**")
+st.sidebar.markdown("Premium Plan")
 
-# --- Lead Entry Section ---
-st.header("1. Manual Lead Entry")
-with st.form("lead_form"):
-    name = st.text_input("Full Name")
-    email = st.text_input("Email Address")
-    phone = st.text_input("Phone Number")
-    address = st.text_input("Business Address")
-    submit_lead = st.form_submit_button("Add Lead")
+if menu == "Dashboard":
+    st.title("Dashboard")
+    st.subheader("Manage your email marketing campaigns")
+    st.text_input("Search contacts, campaigns...", key="search_dashboard")
+    st.button("New Campaign")
 
-if submit_lead:
-    if validate_email(email) and email not in [l['Email'] for l in st.session_state.leads]:
-        st.session_state.leads.append({"Name": name, "Email": email, "Phone": phone, "Address": address})
-        st.success("Lead added successfully.")
-    else:
-        st.error("Invalid or duplicate email address.")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Contacts", "29", "+12%")
+    col2.metric("Emails Sent", "0", "+8%")
+    col3.metric("Open Rate", "0%", "-2%")
+    col4.metric("Active Campaigns", "0")
 
-# --- Google Places Search ---
-st.header("2. Business Search (Google Places)")
-search_type = st.text_input("Search for...", placeholder="e.g., General Contractor")
-location = st.text_input("City or Zip Code", value="Miami, FL")
-if st.button("Search Google Places") and gmaps_api_key:
-    text_search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={search_type}+in+{location}&key={gmaps_api_key}"
-    response = requests.get(text_search_url).json()
+    st.subheader("Recent Campaigns")
+    st.markdown("**South Florida Architects Partnership Outreach**\nDraft • 0 recipients selected")
+    st.markdown("**BC63125**\nDraft • 0 recipients selected")
+    st.markdown("**gc-miami-73125**\nDraft • 0 recipients selected")
 
-    st.markdown(f"**API Status:** {response.get('status')}")
-    if "error_message" in response:
-        st.markdown(f"**Error:** {response['error_message']}")
-    st.json(response)  # Debug output
+elif menu == "Lead Generation":
+    st.title("Lead Generation")
+    st.subheader("Find and extract business contacts using Google Search")
+    search_type = st.text_input("Business Type", placeholder="e.g., general contractors")
+    location = st.text_input("Location", placeholder="e.g., Miami-Dade County")
+    if st.button("Search Leads") and gmaps_api_key:
+        text_search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={search_type}+in+{location}&key={gmaps_api_key}"
+        response = requests.get(text_search_url).json()
 
-    if "error_message" in response:
-        st.error(f"Google API Error: {response['error_message']}")
-    elif not response.get("results"):
-        st.warning("No results found. Double check your search term and API key settings.")
-    else:
-        results = []
-        for place in response.get("results", []):
-            name = place.get("name")
-            address = place.get("formatted_address")
-            place_id = place.get("place_id")
+        st.markdown(f"**API Status:** {response.get('status')}")
+        if "error_message" in response:
+            st.markdown(f"**Error:** {response['error_message']}")
+        st.json(response)
 
-            details_url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_phone_number,website&key={gmaps_api_key}"
-            details = requests.get(details_url).json()
-            result = details.get("result", {})
-            phone = result.get("formatted_phone_number", "")
-            website = result.get("website", "")
+        if response.get("results"):
+            results = []
+            for place in response["results"]:
+                name = place.get("name")
+                address = place.get("formatted_address")
+                place_id = place.get("place_id")
+                details_url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_phone_number,website&key={gmaps_api_key}"
+                details = requests.get(details_url).json()
+                result = details.get("result", {})
+                phone = result.get("formatted_phone_number", "")
+                website = result.get("website", "")
 
-            lead_entry = {"Name": name, "Email": website, "Phone": phone, "Address": address}
-            results.append(lead_entry)
+                lead_entry = {
+                    "Name": name,
+                    "Address": address,
+                    "Phone": phone,
+                    "Email": website
+                }
+                results.append(lead_entry)
 
-            st.write(f"**{name}** - {address} | 📞 {phone} | 🌐 {website}")
-            if st.button(f"Add {name}", key=place_id):
-                st.session_state.leads.append(lead_entry)
+            df = pd.DataFrame(results)
+            st.dataframe(df)
+            st.download_button("Download CSV", df.to_csv(index=False), "leads.csv")
 
-        st.session_state.search_results = results
-        if results:
-            df_search = pd.DataFrame(results)
-            st.download_button("Download Search Results CSV", df_search.to_csv(index=False), "search_results.csv")
+elif menu == "Email Templates":
+    st.title("Template Library")
+    st.subheader("Quick Actions")
+    st.button("Create AI Template")
+    st.button("Import Contacts")
+    st.button("Validate Emails")
+    st.button("Schedule Campaign")
 
-# --- Lead Table ---
-st.header("3. Current Leads")
-if st.session_state.leads:
-    df_leads = pd.DataFrame(st.session_state.leads)
-    st.dataframe(df_leads)
-    st.download_button("Download Leads CSV", df_leads.to_csv(index=False), "leads.csv")
+    templates = [
+        {"name": "Architect Outreach - Flooring Partnership", "category": "general template"},
+        {"name": "Thank You & Testimonial Request", "category": "follow_up template"},
+        {"name": "Special Offer - Limited Time", "category": "promotion template"}
+    ]
 
-# --- Email Template Generator ---
-st.header("4. Email Templates & Generator")
-language = st.radio("Choose Email Language", ["English", "Spanish"])
-template_choice = None
+    for template in templates:
+        st.markdown(f"**{template['name']}**\n{template['category']}\nUsed 0 times\n0.00% avg open rate")
 
-# Load templates
-if os.path.exists("templates.json"):
-    with open("templates.json") as f:
-        templates = json.load(f)
-    options = [t['name'] for t in templates]
-    template_choice = st.selectbox("Choose a Template", options)
-    selected_template = next((t for t in templates if t['name'] == template_choice), None)
-else:
-    st.warning("No templates.json found")
+elif menu == "Contacts":
+    st.title("Contacts")
+    if "leads" not in st.session_state:
+        st.session_state.leads = []
 
-subject = st.text_input("Email Subject", value=selected_template['subject'] if selected_template else "")
-prompt = st.text_area("Custom Purpose or Prompt")
-if st.button("Generate Email"):
-    if prompt or selected_template:
-        context = f"Write in {language}. Purpose: {prompt}" if prompt else selected_template['body']
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": context}]
-        )
-        email_body = response.choices[0].message['content']
-        st.markdown("### Generated Email:")
-        st.write(email_body)
-        st.session_state.generated_email = {"subject": subject, "body": email_body}
+    st.header("Add Contact Manually")
+    with st.form("add_contact"):
+        name = st.text_input("Name")
+        email = st.text_input("Email")
+        phone = st.text_input("Phone")
+        address = st.text_input("Address")
+        if st.form_submit_button("Add"):
+            if validate_email(email):
+                st.session_state.leads.append({"Name": name, "Email": email, "Phone": phone, "Address": address})
+                st.success("Contact added.")
+            else:
+                st.error("Invalid email")
 
-# --- Campaign Scheduler ---
-st.header("5. Schedule Campaign (Manual Simulation)")
-frequency = st.selectbox("Email Frequency", ["1x/week", "2x/week", "3x/week"])
-scheduled_day = st.date_input("Start Date", datetime.today())
+    if st.session_state.leads:
+        df = pd.DataFrame(st.session_state.leads)
+        st.dataframe(df)
+        st.download_button("Download Contacts", df.to_csv(index=False), "contacts.csv")
 
-if st.button("Simulate Send") and "generated_email" in st.session_state:
-    for lead in st.session_state.leads:
-        log = {
-            "To": lead['Email'],
-            "Subject": st.session_state.generated_email['subject'],
-            "Date": str(datetime.now())
-        }
-        st.session_state.sent_logs.append(log)
-    st.success(f"Simulated sending to {len(st.session_state.leads)} leads")
+elif menu == "Campaigns":
+    st.title("Campaigns")
+    st.markdown("Coming soon...")
 
-# --- Sent Log ---
-st.header("6. Sent Email Log")
-if st.session_state.sent_logs:
-    df_logs = pd.DataFrame(st.session_state.sent_logs)
-    st.dataframe(df_logs)
-    st.download_button("Download Sent Log", df_logs.to_csv(index=False), "sent_log.csv")
+elif menu == "Analytics":
+    st.title("Analytics")
+    st.markdown("Coming soon...")
+
+elif menu == "API Config":
+    st.title("API Config")
+    st.text("OPENAI_API_KEY and GOOGLE_MAPS_API_KEY loaded from secrets.")
+
+elif menu == "Settings":
+    st.title("Settings")
+    st.markdown("User preferences and configuration.")
