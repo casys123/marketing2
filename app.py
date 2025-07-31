@@ -50,15 +50,23 @@ st.header("2. Business Search (Google Places)")
 search_type = st.text_input("Search for...", placeholder="e.g., General Contractor")
 location = st.text_input("City or Zip Code", value="Miami, FL")
 if st.button("Search Google Places") and gmaps_api_key:
-    url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={search_type}+in+{location}&key={gmaps_api_key}"
-    res = requests.get(url).json()
-    for place in res.get("results", []):
+    text_search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={search_type}+in+{location}&key={gmaps_api_key}"
+    response = requests.get(text_search_url).json()
+    for place in response.get("results", []):
         name = place.get("name")
         address = place.get("formatted_address")
-        phone = place.get("formatted_phone_number", "")
-        st.write(f"**{name}** - {address}")
-        if st.button(f"Add {name}", key=name):
-            st.session_state.leads.append({"Name": name, "Email": "", "Phone": phone, "Address": address})
+        place_id = place.get("place_id")
+
+        # Second API call to get phone number and website
+        details_url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_phone_number,website&key={gmaps_api_key}"
+        details = requests.get(details_url).json()
+        result = details.get("result", {})
+        phone = result.get("formatted_phone_number", "")
+        website = result.get("website", "")
+
+        st.write(f"**{name}** - {address} | 📞 {phone} | 🌐 {website}")
+        if st.button(f"Add {name}", key=place_id):
+            st.session_state.leads.append({"Name": name, "Email": website, "Phone": phone, "Address": address})
 
 # --- Lead Table ---
 st.header("3. Current Leads")
