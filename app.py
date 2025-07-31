@@ -59,7 +59,6 @@ elif menu == "Lead Generation":
         st.markdown(f"**API Status:** {response.get('status')}")
         if "error_message" in response:
             st.markdown(f"**Error:** {response['error_message']}")
-        st.json(response)
 
         if response.get("results"):
             results = []
@@ -81,8 +80,11 @@ elif menu == "Lead Generation":
                 }
                 results.append(lead_entry)
 
+            st.write("### Extracted Leads")
+            for lead in results:
+                st.markdown(f"- **{lead['Name']}** | {lead['Address']} | 📞 {lead['Phone']} | 📧 {lead['Email']}")
+
             df = pd.DataFrame(results)
-            st.dataframe(df)
             st.download_button("Download CSV", df.to_csv(index=False), "leads.csv")
 
 elif menu == "Email Templates":
