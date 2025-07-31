@@ -28,6 +28,8 @@ if "leads" not in st.session_state:
     st.session_state.leads = []
 if "sent_logs" not in st.session_state:
     st.session_state.sent_logs = []
+if "search_results" not in st.session_state:
+    st.session_state.search_results = []
 
 # --- Lead Entry Section ---
 st.header("1. Manual Lead Entry")
@@ -52,27 +54,36 @@ location = st.text_input("City or Zip Code", value="Miami, FL")
 if st.button("Search Google Places") and gmaps_api_key:
     text_search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={search_type}+in+{location}&key={gmaps_api_key}"
     response = requests.get(text_search_url).json()
+    st.json(response)  # Debug output
 
     if "error_message" in response:
         st.error(f"Google API Error: {response['error_message']}")
     elif not response.get("results"):
         st.warning("No results found. Double check your search term and API key settings.")
     else:
+        results = []
         for place in response.get("results", []):
             name = place.get("name")
             address = place.get("formatted_address")
             place_id = place.get("place_id")
 
-            # Second API call to get phone number and website
             details_url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_phone_number,website&key={gmaps_api_key}"
             details = requests.get(details_url).json()
             result = details.get("result", {})
             phone = result.get("formatted_phone_number", "")
             website = result.get("website", "")
 
+            lead_entry = {"Name": name, "Email": website, "Phone": phone, "Address": address}
+            results.append(lead_entry)
+
             st.write(f"**{name}** - {address} | 📞 {phone} | 🌐 {website}")
             if st.button(f"Add {name}", key=place_id):
-                st.session_state.leads.append({"Name": name, "Email": website, "Phone": phone, "Address": address})
+                st.session_state.leads.append(lead_entry)
+
+        st.session_state.search_results = results
+        if results:
+            df_search = pd.DataFrame(results)
+            st.download_button("Download Search Results CSV", df_search.to_csv(index=False), "search_results.csv")
 
 # --- Lead Table ---
 st.header("3. Current Leads")
